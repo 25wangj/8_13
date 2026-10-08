@@ -3,7 +3,7 @@ from core import *
 c = 2.998e8
 q_e = 1.602e-19
 
-with open('ex0_photoelectric/day1data.txt', 'r') as file:
+with open('ex0_photoelectric/day2data.txt', 'r') as file:
     data_str = file.read()
 data = [[float(f) for f in a.split()] for a in data_str.split('\n')[1:]]
 Lambda = []
@@ -11,25 +11,24 @@ V = []
 I = []
 i = 0
 n = 0
-#Only use data near cutoff
-min_V = [3, 4, 3, 3.5, 3.5]
 while i < len(data):
     Lambda.append(data[i][0] * 1e-9)
     curr_V = [data[i][1]]
-    curr_I = [data[i][2] * 1e-12]
+    curr_I = [data[i][2] * 1e-6]
     i += 1
     while i < len(data) and len(data[i]) == 2:
         curr_V.append(data[i][0])
-        curr_I.append(data[i][1] * 1e-12)
+        curr_I.append(data[i][1] * 1e-6)
         i += 1
     curr_V = np.array(curr_V)   
     curr_I = np.array(curr_I)
     sort_inds = np.argsort(curr_V)
     curr_V = curr_V[sort_inds]
     curr_I = curr_I[sort_inds]
-    mask = curr_V >= min_V[n]
-    V.append(curr_V[mask])
-    I.append(curr_I[mask])
+    #Only use data in dense region near cutoff
+    min_ind = np.flatnonzero(curr_V[1:] - curr_V[:-1] < 0.5)[0]
+    V.append(curr_V[min_ind:])
+    I.append(curr_I[min_ind:])
     n += 1
 Lambda = np.array(Lambda)
 Omega = 2*np.pi*c/Lambda
@@ -37,18 +36,18 @@ Omega = 2*np.pi*c/Lambda
 def softplus(x, x0, y0, m, a):
     return m*a*np.log(1 + np.exp(-(x-x0)/a)) + y0
 fun = softplus
-p0 = [4,1e-15,2e-14,1]
+p0 = [5,0,4e-9,1]
 
-sigma_I = 1e-16
+sigma_I = 1e-11
 fig, axs = plt.subplots(2,3)
 V0 = []
 V0_err = []
 for i in range(n):
     sigma = np.full(len(V[i]), sigma_I)
-    popt, pcov, info, _, _ = scipy.optimize.curve_fit(fun, V[i], I[i], sigma=sigma, p0 = p0, full_output=True)
+    popt, pcov, info, _, _ = fit(fun, V[i], I[i], sigma=sigma, p0 = p0, full_output=True)
     I_fit = fun(V[i], *popt)
     V0.append(popt[0])
-    V0_err.append(np.sqrt(pcov[0,0]))
+    V0_err.append(popt[3]/2)
 
     ax:plt.Axes = axs.flat[i]
     ax.errorbar(V[i], I[i], yerr = sigma, fmt='o')
@@ -62,7 +61,7 @@ V0_err = np.array(V0_err)
 axs.flat[-1].axis('off')
 plt.tight_layout()
 
-popt, pcov, info, _, _ = scipy.optimize.curve_fit(lambda x,a,b: a*x+b, Omega, V0, sigma = V0_err, full_output=True)
+popt, pcov, info, _, _ = fit(lambda x,a,b: a*x+b, Omega, V0, sigma = V0_err, absolute_sigma=True, full_output=True)
 Omega_range = np.array([np.min(Omega), np.max(Omega)])
 print(f'hbar = {popt[0] * q_e : .2E} +- {np.sqrt(pcov[0,0]) * q_e:.2E}')
 print(f'phi = {-popt[1] : .2E} +- {np.sqrt(pcov[1,1]) : .2E}')

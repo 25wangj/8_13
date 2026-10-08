@@ -21,7 +21,7 @@ sigma = np.sqrt(g_hist)
 sigma_fit = np.where(sigma == 0, 1e6, sigma)
 fun = cauchy
 name = 'Cauchy'
-popt, pcov, info,_,_ = scipy.optimize.curve_fit(fun, g_list, g_hist, p0=[9.8, 0.2], sigma=sigma_fit, full_output=True)
+popt, pcov, info,_,_ = fit(fun, g_list, g_hist, p0=[9.8, 0.2], sigma=sigma_fit, full_output=True)
 X2 = np.sum(info['fvec']**2)
 dof = np.sum(sigma != 0) - 2
 curve = fun(g_list,  *popt)

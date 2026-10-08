@@ -1,7 +1,7 @@
 from core import *
 
 def linear_fit(x, y, title, sigma, ax:plt.Axes):
-    popt, pcov, info, _, _ = scipy.optimize.curve_fit(lambda x,a,b: a*x+b, x, y, sigma=sigma, full_output=True)
+    popt, pcov, info, _, _ = fit(lambda x,a,b: a*x+b, x, y, sigma=sigma, full_output=True)
     ax.errorbar(x, y, yerr=sigma, fmt='o')
     ax.plot(x, popt[0] * x + popt[1])
     ax.set_xlabel('x')
